@@ -1,0 +1,32 @@
+name: federate
+
+on:
+  push:
+    branches:
+    - '*'
+
+jobs:
+  auth:
+
+    # Add "id-token" with the intended permissions.
+    permissions:
+      contents: 'read'
+      id-token: 'write'
+
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@master
+        with:
+          fetch-depth: 1
+      - name: Dump env
+        run: env
+      - name: Install faas-cli
+        run: curl -sLS https://cli.openfaas.com | sudo sh
+      - name: Get token and use the CLI
+        run: |
+          OIDC_TOKEN=$(curl -sLS "${ACTIONS_ID_TOKEN_REQUEST_URL}&audience=o6s" -H "User-Agent: actions/oidc-client" -H "Authorization: Bearer $ACTIONS_ID_TOKEN_REQUEST_TOKEN")
+          JWT=$(echo $OIDC_TOKEN | jq -j '.value')
+
+          export OPENFAAS_URL=https://minty.exit.o6s.io/
+
+          faas-cli list --token "$JWT"
